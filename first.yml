@@ -1,0 +1,48 @@
+name: Sync OCM Credentials
+
+# Fetches OCM credentials from the Digital DevOps Key Vault (XXXXXXXX)
+# and writes them to our Digital Core Key Vault (XXXXXXXXXx).
+# Triggered manually or can be scheduled as needed.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  sync:
+    name: Sync OCM Credentials to Key Vault
+    runs-on: ubuntu-universal-latest
+
+    env:
+      # EXTERNAL_KEY_VAULT: kvxxxxint
+      TARGET_KEY_VAULT: kvxxxxnp
+
+    steps:
+      # - name: Azure Login — External Key Vault Access (OIDC)
+      #   uses: azure/login@v2
+      #   with:
+      #     creds: ${{ secrets.DIGITAL_AZURE_DEVOPS_CREDENTIALS }}
+
+      - name: Azure Login — Our Subscription (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: 
+          tenant-id: 
+          subscription-id: 
+
+      - name: Fetch OSD Secrets from Key Vault
+        id: kv-secrets
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: ${ env.TARGET_KEY_VAULT }
+          secrets: 'OCM-CLIENT-ID,OCM-CLIENT-SECRET'
+
+      # Export OSD provider credentials as environment variables
+      # These are consumed by the osdgoogle provider: OSDGOOGLE_CLIENT_ID / OSDGOOGLE_CLIENT_SECRET
+      - name: Set OSD Provider Environment Variables
+        run: |
+          echo "ocm_client_id=${{ steps.kv-secrets.outputs.OCM-CLIENT-ID }}" >> $GITHUB_ENV
+          echo "ocm_client_secret=${{ steps.kv-secrets.outputs.OCM-CLIENT-SECRET }}" >> $GITHUB_ENV
