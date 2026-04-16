@@ -27,74 +27,33 @@ jobs:
     env:
       # EXTERNAL_KEY_VAULT: kvxxxxint
       TARGET_KEY_VAULT: ${{ github.event.inputs.environment == 'prod' && 'kvxxxxprod' || 'kvxxxxnp' }}
+      AZURE_CLIENT_ID: ${{ github.event.inputs.environment == 'prod' && secrets.AZURE_CLIENT_ID_PROD || secrets.AZURE_CLIENT_ID_NONPROD }}
+      AZURE_TENANT_ID: ${{ github.event.inputs.environment == 'prod' && secrets.AZURE_TENANT_ID_PROD || secrets.AZURE_TENANT_ID_NONPROD }}
+      AZURE_SUBSCRIPTION_ID: ${{ github.event.inputs.environment == 'prod' && secrets.AZURE_SUBSCRIPTION_ID_PROD || secrets.AZURE_SUBSCRIPTION_ID_NONPROD }}
 
     steps:
-      - name: Print Environment Selection
-        run: |
-          echo "========================================="
-          echo "Testing OCM Credentials Sync Workflow"
-          echo "========================================="
-          echo "Selected Environment: ${{ github.event.inputs.environment }}"
-          echo "Target Key Vault: ${{ env.TARGET_KEY_VAULT }}"
-          echo "========================================="
-
       # - name: Azure Login — External Key Vault Access (OIDC)
       #   uses: azure/login@v2
       #   with:
       #     creds: ${{ secrets.DIGITAL_AZURE_DEVOPS_CREDENTIALS }}
 
-      # - name: Azure Login — Our Subscription (OIDC)
-      #   uses: azure/login@v2
-      #   with:
-      #     client-id: 
-      #     tenant-id: 
-      #     subscription-id: 
+      - name: Azure Login — Our Subscription (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Simulate Azure Login
-        run: |
-          echo "✓ [SIMULATED] Azure Login — Our Subscription (OIDC)"
-          echo "  - Would authenticate with OIDC"
-          echo "  - Would use federated identity"
-
-      # - name: Fetch OSD Secrets from Key Vault
-      #   id: kv-secrets
-      #   uses: azure/get-keyvault-secrets@v1
-      #   with:
-      #     keyvault: ${{ env.TARGET_KEY_VAULT }}
-      #     secrets: 'OCM-CLIENT-ID,OCM-CLIENT-SECRET'
-
-      - name: Simulate Fetch OSD Secrets from Key Vault
+      - name: Fetch OSD Secrets from Key Vault
         id: kv-secrets
-        run: |
-          echo "✓ [SIMULATED] Fetching secrets from Key Vault"
-          echo "  - Key Vault: ${{ env.TARGET_KEY_VAULT }}"
-          echo "  - Secrets: OCM-CLIENT-ID, OCM-CLIENT-SECRET"
-          echo "  - Status: Success (simulated)"
-          echo "OCM-CLIENT-ID=mock-client-id-${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-          echo "OCM-CLIENT-SECRET=mock-secret-value-${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: ${{ env.TARGET_KEY_VAULT }}
+          secrets: 'OCM-CLIENT-ID,OCM-CLIENT-SECRET'
 
       # Export OSD provider credentials as environment variables
       # These are consumed by the osdgoogle provider: OSDGOOGLE_CLIENT_ID / OSDGOOGLE_CLIENT_SECRET
-      # - name: Set OSD Provider Environment Variables
-      #   run: |
-      #     echo "ocm_client_id=${{ steps.kv-secrets.outputs.OCM-CLIENT-ID }}" >> $GITHUB_ENV
-      #     echo "ocm_client_secret=${{ steps.kv-secrets.outputs.OCM-CLIENT-SECRET }}" >> $GITHUB_ENV
-
-      - name: Simulate Set OSD Provider Environment Variables
+      - name: Set OSD Provider Environment Variables
         run: |
-          echo "✓ [SIMULATED] Setting OSD Provider Environment Variables"
-          echo "  - ocm_client_id: ${{ steps.kv-secrets.outputs.OCM-CLIENT-ID }}"
-          echo "  - ocm_client_secret: ********** (hidden)"
           echo "ocm_client_id=${{ steps.kv-secrets.outputs.OCM-CLIENT-ID }}" >> $GITHUB_ENV
           echo "ocm_client_secret=${{ steps.kv-secrets.outputs.OCM-CLIENT-SECRET }}" >> $GITHUB_ENV
-
-      - name: Verify Environment Variables
-        run: |
-          echo "========================================="
-          echo "Verification: Environment Variables Set"
-          echo "========================================="
-          echo "ocm_client_id: ${{ env.ocm_client_id }}"
-          echo "ocm_client_secret: ********** (hidden)"
-          echo "========================================="
-          echo "✅ Workflow completed successfully!"
-          echo "========================================="
