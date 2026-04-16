@@ -22,7 +22,7 @@ permissions:
 jobs:
   sync:
     name: Sync OCM Credentials to ${{ github.event.inputs.environment }} Key Vault
-    runs-on: ubuntu-universal-latest
+    runs-on: ubuntu-latest
     
     env:
       # EXTERNAL_KEY_VAULT: kvxxxxint
